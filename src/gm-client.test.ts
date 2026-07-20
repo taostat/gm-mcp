@@ -20,6 +20,7 @@ function textResponse(status: number, body: string): Response {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe("askGm", () => {
@@ -69,5 +70,26 @@ describe("listModels", () => {
     const result = await listModels(config);
 
     expect(result).toBe("model-a\nmodel-b");
+  });
+
+  it("surfaces a clear timeout error when the request aborts", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const assertion = expect(listModels(config)).rejects.toThrow(
+      "gm /models timed out after 60000 ms",
+    );
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
   });
 });
