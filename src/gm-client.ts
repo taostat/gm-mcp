@@ -1,7 +1,6 @@
 export interface GmConfig {
   baseUrl: string;
   apiKey: string;
-  umsUrl?: string;
 }
 
 interface ChatMessage {
@@ -15,18 +14,6 @@ interface ChatCompletionResponse {
 
 interface ModelsResponse {
   data?: Array<{ id?: unknown }>;
-}
-
-interface KeyStatusResponse {
-  ru_budget: number;
-  ru_consumed: number;
-  ru_remaining: number;
-  ru_remaining_percent: number;
-  is_exhausted: boolean;
-  period_start: string;
-  period_end: string;
-  requests: number;
-  rate_limit_rpm: number;
 }
 
 const ASK_TIMEOUT_MS = 300_000;
@@ -89,38 +76,4 @@ export async function listModels(config: GmConfig): Promise<string> {
     .map((entry) => entry.id)
     .filter((id): id is string => typeof id === "string");
   return ids.join("\n");
-}
-
-export async function keyStatus(config: GmConfig): Promise<string> {
-  if (!config.umsUrl) {
-    return "gm_balance is not configured: set GM_UMS_URL to the gm user-management-api base URL.";
-  }
-
-  const response = await fetch(`${config.umsUrl}/api-keys/self/status`, {
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-  });
-
-  if (response.status === 401) {
-    return "invalid or inactive API key";
-  }
-  if (response.status === 403) {
-    return "no active subscription for this key";
-  }
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`gm UMS /api-keys/self/status -> ${response.status}: ${body.slice(0, 500)}`);
-  }
-
-  // ru_* fields are compute-unit (CU/RU) counters, not dollar amounts.
-  const status = (await response.json()) as KeyStatusResponse;
-  return [
-    `Remaining: ${status.ru_remaining} RU (${status.ru_remaining_percent}%)`,
-    `Budget: ${status.ru_budget} RU`,
-    `Consumed: ${status.ru_consumed} RU`,
-    `Exhausted: ${status.is_exhausted}`,
-    `Period: ${status.period_start} to ${status.period_end}`,
-    `Requests: ${status.requests}, rate limit: ${status.rate_limit_rpm} rpm`,
-  ].join("\n");
 }

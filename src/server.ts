@@ -2,7 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { askGm, keyStatus, listModels, type GmConfig } from "./gm-client.js";
+import { askGm, listModels, type GmConfig } from "./gm-client.js";
 
 const SERVER_VERSION = "0.1.0";
 const DEFAULT_BASE_URL = "https://api.saygm.com/v1";
@@ -13,8 +13,7 @@ function loadConfig(): GmConfig {
     throw new Error("GM_API_KEY environment variable is required");
   }
   const baseUrl = process.env["GM_BASE_URL"] ?? DEFAULT_BASE_URL;
-  const umsUrl = process.env["GM_UMS_URL"];
-  return umsUrl ? { baseUrl, apiKey, umsUrl } : { baseUrl, apiKey };
+  return { baseUrl, apiKey };
 }
 
 function errorText(error: unknown): string {
@@ -52,22 +51,6 @@ function registerTools(server: McpServer, config: GmConfig): void {
     async () => {
       try {
         const text = await listModels(config);
-        return { content: [{ type: "text", text }] };
-      } catch (error) {
-        return { content: [{ type: "text", text: errorText(error) }], isError: true };
-      }
-    },
-  );
-
-  server.registerTool(
-    "gm_balance",
-    {
-      description: "Check remaining budget for the current gm API key.",
-      inputSchema: {},
-    },
-    async () => {
-      try {
-        const text = await keyStatus(config);
         return { content: [{ type: "text", text }] };
       } catch (error) {
         return { content: [{ type: "text", text: errorText(error) }], isError: true };
