@@ -30,6 +30,7 @@ interface AnthropicContentBlock {
 
 interface AnthropicMessagesResponse {
   content?: unknown;
+  stop_reason?: unknown;
 }
 
 interface GeminiPart {
@@ -43,6 +44,10 @@ interface GeminiGenerateContentResponse {
 const ASK_TIMEOUT_MS = 300_000;
 const CATALOG_TIMEOUT_MS = 60_000;
 const CATALOG_TTL_MS = 60_000;
+// gm holds credit against max_tokens up front, so an over-large cap trips
+// insufficient-credits even for short outputs; 16384 balances complete output
+// against hold size. Raise via the gm_ask max_tokens param for very long outputs.
+const DEFAULT_MAX_TOKENS = 16384;
 
 let catalogCache: { config: GmConfig; entries: CatalogModel[]; expiresAt: number } | null = null;
 
@@ -135,6 +140,7 @@ async function askOpenAI(
   model: string,
   prompt: string,
   system?: string,
+  maxTokens?: number,
 ): Promise<string> {
   const messages: Array<{ role: "system" | "user"; content: string }> = [];
   if (system !== undefined) {
@@ -142,10 +148,15 @@ async function askOpenAI(
   }
   messages.push({ role: "user", content: prompt });
 
+  const body: Record<string, unknown> = { model, messages, stream: false };
+  if (maxTokens !== undefined) {
+    body["max_tokens"] = maxTokens;
+  }
+
   const response = await gmFetch(
     `${config.baseUrl}/chat/completions`,
     { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json" },
-    { method: "POST", body: JSON.stringify({ model, messages, stream: false }) },
+    { method: "POST", body: JSON.stringify(body) },
     ASK_TIMEOUT_MS,
   );
   const data = (await response.json()) as ChatCompletionResponse;
@@ -158,10 +169,11 @@ async function askAnthropic(
   model: string,
   prompt: string,
   system?: string,
+  maxTokens?: number,
 ): Promise<string> {
   const body: Record<string, unknown> = {
     model,
-    max_tokens: 8192,
+    max_tokens: maxTokens ?? DEFAULT_MAX_TOKENS,
     messages: [{ role: "user", content: prompt }],
   };
   if (system !== undefined) {
@@ -180,10 +192,14 @@ async function askAnthropic(
   );
   const data = (await response.json()) as AnthropicMessagesResponse;
   const blocks = Array.isArray(data.content) ? (data.content as AnthropicContentBlock[]) : [];
-  return blocks
+  const text = blocks
     .filter((block) => block.type === "text" && typeof block.text === "string")
     .map((block) => block.text as string)
     .join("");
+  if (text.length === 0 && data.stop_reason === "refusal") {
+    throw new Error(`model '${model}' refused the request`);
+  }
+  return text;
 }
 
 async function askGemini(
@@ -191,9 +207,11 @@ async function askGemini(
   model: string,
   prompt: string,
   system?: string,
+  maxTokens?: number,
 ): Promise<string> {
   const body: Record<string, unknown> = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: { maxOutputTokens: maxTokens ?? DEFAULT_MAX_TOKENS },
   };
   if (system !== undefined) {
     body["systemInstruction"] = { parts: [{ text: system }] };
@@ -221,6 +239,7 @@ export async function askGm(
   model: string,
   prompt: string,
   system?: string,
+  maxTokens?: number,
 ): Promise<string> {
   const catalog = await getCatalog(config);
   const entry = catalog.find((candidate) => candidate.id === model);
@@ -230,11 +249,11 @@ export async function askGm(
 
   let text: string;
   if (entry.apiShapes.includes("chat.completions")) {
-    text = await askOpenAI(config, model, prompt, system);
+    text = await askOpenAI(config, model, prompt, system, maxTokens);
   } else if (entry.apiShapes.includes("messages")) {
-    text = await askAnthropic(config, model, prompt, system);
+    text = await askAnthropic(config, model, prompt, system, maxTokens);
   } else if (entry.apiShapes.some((shape) => shape.startsWith("generateContent"))) {
-    text = await askGemini(config, model, prompt, system);
+    text = await askGemini(config, model, prompt, system, maxTokens);
   } else {
     throw new Error(
       `model '${model}' uses an unsupported surface (api_shapes: ${entry.apiShapes.join(", ")})`,

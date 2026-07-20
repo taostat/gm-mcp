@@ -33,11 +33,12 @@ function registerTools(server: McpServer, config: GmConfig): void {
         model: z.string(),
         prompt: z.string(),
         system: z.string().optional(),
+        max_tokens: z.number().int().positive().optional(),
       },
     },
-    async ({ model, prompt, system }) => {
+    async ({ model, prompt, system, max_tokens }) => {
       try {
-        const text = await askGm(config, model, prompt, system);
+        const text = await askGm(config, model, prompt, system, max_tokens);
         return { content: [{ type: "text", text }] };
       } catch (error) {
         return { content: [{ type: "text", text: errorText(error) }], isError: true };

@@ -67,6 +67,7 @@ Ask a specific gm model a prompt and get back its full response text.
 | `model` | string | yes | A gm catalog model id (see `gm_list_models`) |
 | `prompt` | string | yes | The user prompt |
 | `system` | string | no | Optional system prompt |
+| `max_tokens` | integer | no | Max output tokens (default 16384). Raising it increases gm's upfront credit hold; OpenAI-surface models are uncapped when it's unset. |
 
 `gm_ask` auto-routes across the gm gateway's three API surfaces based on
 the model's `api_shapes` in the gm catalog, so `claude-fable-5`, `gpt-*`,

@@ -51,7 +51,8 @@ describe("askGm surface routing", () => {
       Authorization: "Bearer sk-test",
       "Content-Type": "application/json",
     });
-    expect(JSON.parse(init.body as string)).toEqual({
+    const parsedBody = JSON.parse(init.body as string);
+    expect(parsedBody).toEqual({
       model: "gpt-5.6",
       messages: [
         { role: "system", content: "be terse" },
@@ -59,6 +60,24 @@ describe("askGm surface routing", () => {
       ],
       stream: false,
     });
+    expect(parsedBody).not.toHaveProperty("max_tokens");
+  });
+
+  it("includes max_tokens on the OpenAI body only when passed", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        catalogResponse([{ id: "gpt-5.6", api_shapes: ["chat.completions"], available: true }]),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, { choices: [{ message: { content: "ok" } }] }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await askGm(config, "gpt-5.6", "hi", undefined, 4096);
+
+    const [, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({ max_tokens: 4096 });
   });
 
   it("routes messages models to the Anthropic surface", async () => {
@@ -90,10 +109,43 @@ describe("askGm surface routing", () => {
     expect(init.headers).not.toHaveProperty("Authorization");
     expect(JSON.parse(init.body as string)).toEqual({
       model: "claude-fable-5",
-      max_tokens: 8192,
+      max_tokens: 16384,
       system: "be terse",
       messages: [{ role: "user", content: "hi" }],
     });
+  });
+
+  it("lets a passed max_tokens override the Anthropic default", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        catalogResponse([{ id: "claude-fable-5", api_shapes: ["messages"], available: true }]),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, { content: [{ type: "text", text: "ok" }] }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await askGm(config, "claude-fable-5", "hi", undefined, 32000);
+
+    const [, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({ max_tokens: 32000 });
+  });
+
+  it("throws a refusal error when Anthropic refuses with empty content", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        catalogResponse([{ id: "claude-fable-5", api_shapes: ["messages"], available: true }]),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(200, { content: [], stop_reason: "refusal" }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(askGm(config, "claude-fable-5", "hi")).rejects.toThrow(
+      "model 'claude-fable-5' refused the request",
+    );
   });
 
   it("routes generateContent models to the Gemini surface at the origin, under /v1beta", async () => {
@@ -128,6 +180,7 @@ describe("askGm surface routing", () => {
     });
     expect(JSON.parse(init.body as string)).toEqual({
       contents: [{ role: "user", parts: [{ text: "hi" }] }],
+      generationConfig: { maxOutputTokens: 16384 },
       systemInstruction: { parts: [{ text: "be terse" }] },
     });
   });
