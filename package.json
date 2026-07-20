@@ -1,0 +1,32 @@
+{
+  "name": "gm-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing the gm inference gateway's models as callable tools for coding agents",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "gm-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "oxlint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.1",
+    "oxlint": "1.74.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}
