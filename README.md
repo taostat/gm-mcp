@@ -1,4 +1,4 @@
-# gm-mcp
+# goodmorning-mcp
 
 An MCP (Model Context Protocol) server that exposes models available on the
 [gm](https://saygm.com) inference gateway — a Bittensor subnet product — as
@@ -8,7 +8,7 @@ name and list what's available.
 ## Install
 
 ```bash
-npx -y gm-mcp
+npx -y goodmorning-mcp
 ```
 
 ## Environment variables
@@ -25,7 +25,7 @@ Add to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.gm]
 command = "npx"
-args = ["-y", "gm-mcp"]
+args = ["-y", "goodmorning-mcp"]
 env = { "GM_API_KEY" = "sk-...", "GM_BASE_URL" = "https://api.saygm.com/v1" }
 ```
 
@@ -38,7 +38,7 @@ Add to `.mcp.json`:
   "mcpServers": {
     "gm": {
       "command": "npx",
-      "args": ["-y", "gm-mcp"],
+      "args": ["-y", "goodmorning-mcp"],
       "env": {
         "GM_API_KEY": "sk-...",
         "GM_BASE_URL": "https://api.saygm.com/v1"

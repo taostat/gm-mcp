@@ -1,18 +1,39 @@
 {
-  "name": "gm-mcp",
+  "name": "goodmorning-mcp",
   "version": "0.1.0",
-  "description": "MCP server exposing the gm inference gateway's models as callable tools for coding agents",
+  "description": "MCP server exposing the gm (saygm.com) inference gateway's models as callable tools for coding agents",
   "type": "module",
   "license": "Apache-2.0",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gm",
+    "saygm",
+    "llm",
+    "inference",
+    "codex",
+    "claude-code"
+  ],
+  "homepage": "https://github.com/taostat/gm-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taostat/gm-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/taostat/gm-mcp/issues"
+  },
   "engines": {
     "node": ">=22"
   },
   "bin": {
-    "gm-mcp": "dist/server.js"
+    "goodmorning-mcp": "dist/server.js"
   },
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "lint": "oxlint src",
