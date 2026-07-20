@@ -35,7 +35,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "lint": "oxlint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
