@@ -1,10 +1,13 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { askGm, listModels, type GmConfig } from "./gm-client.js";
 
-const SERVER_VERSION = "0.1.0";
+// Single source of truth: the server's identity mirrors package.json so a
+// version bump can't leave a stale hardcoded string behind.
+const pkg = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
 const DEFAULT_BASE_URL = "https://api.saygm.com/v1";
 
 function loadConfig(): GmConfig {
@@ -61,7 +64,7 @@ function registerTools(server: McpServer, config: GmConfig): void {
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const server = new McpServer({ name: "gm-mcp", version: SERVER_VERSION });
+  const server = new McpServer({ name: pkg.name, version: pkg.version });
   registerTools(server, config);
 
   const transport = new StdioServerTransport();
