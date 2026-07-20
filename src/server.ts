@@ -28,7 +28,7 @@ function registerTools(server: McpServer, config: GmConfig): void {
     "gm_ask",
     {
       description:
-        "Ask a specific gm model. Use to audit or get a second opinion on a response from a different model.",
+        "Ask a specific gm model. Use to audit or get a second opinion on a response from a different model. Auto-routes across the OpenAI, Anthropic, and Gemini model families based on the gm catalog, so any available model id works regardless of its underlying API surface.",
       inputSchema: {
         model: z.string(),
         prompt: z.string(),

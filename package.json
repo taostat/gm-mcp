@@ -1,6 +1,6 @@
 {
   "name": "goodmorning-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "MCP server exposing the gm (saygm.com) inference gateway's models as callable tools for coding agents",
   "type": "module",
   "license": "Apache-2.0",

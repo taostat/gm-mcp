@@ -68,6 +68,19 @@ Ask a specific gm model a prompt and get back its full response text.
 | `prompt` | string | yes | The user prompt |
 | `system` | string | no | Optional system prompt |
 
+`gm_ask` auto-routes across the gm gateway's three API surfaces based on
+the model's `api_shapes` in the gm catalog, so `claude-fable-5`, `gpt-*`,
+`kimi-k3`, and `gemini-*` all work through the same tool:
+
+| Surface | Models | Endpoint |
+|---|---|---|
+| OpenAI (`chat.completions`) | e.g. `gpt-*`, `kimi-k3` | `POST {baseUrl}/chat/completions` |
+| Anthropic (`messages`) | e.g. `claude-fable-5` | `POST {baseUrl}/messages` |
+| Gemini (`generateContent`) | e.g. `gemini-*` | `POST {origin}/v1beta/models/{model}:generateContent` |
+
+Models whose only surface is unsupported (e.g. `responses`-only) throw a
+clear error naming the model and its `api_shapes`.
+
 Non-streaming: the call blocks until the model finishes, then returns the
 full text in one shot. If the model returns empty content, the tool throws
 a clear error naming the model. The client applies a 5-minute timeout to
@@ -75,8 +88,9 @@ accommodate long-reasoning models.
 
 ### `gm_list_models`
 
-No params. Returns the model ids available on the gm gateway as a
-newline-separated string, for use as the `model` argument to `gm_ask`.
+No params. Returns the ids of models that are currently available and
+served through a supported surface, as a newline-separated, sorted string,
+for use as the `model` argument to `gm_ask`.
 
 ## Usage
 
@@ -91,9 +105,3 @@ query one. For example:
 
 Model ids come and go with the gm catalog, so call `gm_list_models` rather
 than hardcoding one.
-
-## Notes
-
-`gm_ask` uses non-streaming (`stream: false`) intentionally — it sidesteps a
-gm gateway streaming bug and returns the full response in one shot; a
-5-minute client timeout covers long-reasoning models.
